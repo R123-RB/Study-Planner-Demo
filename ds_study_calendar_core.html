@@ -1,0 +1,672 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.root{padding:1rem 0}
+.top-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:1rem}
+.nav-btn{padding:5px 12px;font-size:12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);cursor:pointer;background:var(--color-background-primary);color:var(--color-text-secondary)}
+.nav-btn:hover{background:var(--color-background-secondary)}
+.month-label{font-size:15px;font-weight:500;color:var(--color-text-primary);flex:1;text-align:center}
+.stats-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:1rem}
+.stat{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px}
+.stat-val{font-size:20px;font-weight:500;color:var(--color-text-primary)}
+.stat-lbl{font-size:11px;color:var(--color-text-tertiary);margin-top:2px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-bottom:1rem}
+.dow-hdr{font-size:11px;color:var(--color-text-tertiary);text-align:center;padding:4px 0;font-weight:500}
+.cal-cell{min-height:72px;border-radius:var(--border-radius-md);padding:6px;border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);cursor:pointer;transition:border-color .15s}
+.cal-cell:hover{border-color:var(--color-border-primary)}
+.cal-cell.empty{background:transparent;border-color:transparent;cursor:default}
+.cal-cell.today{border-color:#378ADD;border-width:1.5px}
+.cal-cell.selected{border-color:#534AB7;border-width:1.5px;background:var(--color-background-secondary)}
+.cal-cell.done{opacity:.55}
+.cell-date{font-size:11px;font-weight:500;color:var(--color-text-tertiary);margin-bottom:3px;display:flex;align-items:center;gap:4px}
+.cell-day-num{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px}
+.cell-topic{font-size:11px;color:var(--color-text-primary);line-height:1.3;margin-bottom:3px}
+.cell-phase-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:2px}
+.cell-presenter{font-size:10px;color:var(--color-text-tertiary)}
+.detail-panel{background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem}
+.detail-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:1rem}
+.detail-date-box{text-align:center;min-width:52px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:6px 10px}
+.detail-month{font-size:10px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.05em}
+.detail-day{font-size:24px;font-weight:500;color:var(--color-text-primary);line-height:1}
+.detail-dow{font-size:10px;color:var(--color-text-tertiary)}
+.detail-title{font-size:16px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px}
+.detail-meta{font-size:12px;color:var(--color-text-secondary)}
+.detail-badge{display:inline-block;font-size:11px;padding:2px 9px;border-radius:12px;margin-bottom:12px}
+.hour-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.hour-block{border-radius:var(--border-radius-md);padding:10px 12px;border:0.5px solid var(--color-border-tertiary)}
+.hour-time{font-size:10px;font-weight:500;color:var(--color-text-tertiary);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.hour-title{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px}
+.hour-desc{font-size:12px;color:var(--color-text-secondary);line-height:1.45}
+.concepts-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.concept-pill{font-size:11px;padding:3px 9px;border-radius:12px;background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary)}
+.discuss-box{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px}
+.discuss-label{font-size:10px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.discuss-list{display:flex;flex-direction:column;gap:5px}
+.discuss-item{font-size:12px;color:var(--color-text-secondary);display:flex;gap:6px;line-height:1.4}
+.discuss-dot{width:4px;height:4px;border-radius:50%;background:var(--color-border-secondary);flex-shrink:0;margin-top:5px}
+.progress-row{display:flex;align-items:center;gap:8px;margin-bottom:1rem}
+.progress-track{flex:1;height:4px;background:var(--color-border-tertiary);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;border-radius:2px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:1rem}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-secondary)}
+.legend-dot{width:8px;height:8px;border-radius:50%}
+.check-btn{padding:5px 12px;font-size:12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);cursor:pointer;background:var(--color-background-primary);color:var(--color-text-secondary);margin-left:auto}
+</style>
+<div class="root">
+  <div class="stats-row">
+    <div class="stat"><div class="stat-val" id="s-done">0</div><div class="stat-lbl">Days done</div></div>
+    <div class="stat"><div class="stat-val" id="s-left">126</div><div class="stat-lbl">Days left</div></div>
+    <div class="stat"><div class="stat-val" id="s-hours">0h</div><div class="stat-lbl">Hours studied</div></div>
+    <div class="stat"><div class="stat-val" id="s-pct">0%</div><div class="stat-lbl">Complete</div></div>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#185FA5"></div>Phase 1 — Foundations</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#0F6E56"></div>Phase 2 — Core ML</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#534AB7"></div>Phase 3 — Deep Learning</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#993C1D"></div>Phase 4 — Production</div>
+  </div>
+  <div class="top-bar">
+    <button class="nav-btn" id="prev-btn">&#8592; Prev</button>
+    <div class="month-label" id="month-label"></div>
+    <button class="nav-btn" id="next-btn">Next &#8594;</button>
+  </div>
+  <div class="cal-grid" id="cal-grid"></div>
+  <div class="detail-panel" id="detail-panel" style="display:none"></div>
+</div>
+<script>
+const PHASE_COLORS=["#185FA5","#0F6E56","#534AB7","#993C1D"];
+const PHASE_BG=["#E6F1FB","#E1F5EE","#EEEDFE","#FAECE7"];
+const PHASE_TEXT=["#0C447C","#085041","#3C3489","#712B13"];
+const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DAYS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+const sessions=[
+  {topic:"Python environment & data types",concepts:["Anaconda/venv","Jupyter notebooks","int, float, str, bool","type(), isinstance()","f-strings, string methods"],presenter:"Friend",phase:0,week:1,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Your friend walks through Python data types: int, float, str, bool. Shows type() and isinstance(). Covers f-strings."},
+         {t:"0:15–0:35",title:"Live coding together",desc:"Both of you open Jupyter. Write 10 expressions using each type. Convert between them. Print a formatted table with f-strings."},
+         {t:"0:35–0:50",title:"Discussion",desc:"You ask questions, your friend defends answers. Switch: you explain one concept back in your own words."},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Summarise key takeaways. Each person writes one thing they'll remember tomorrow."}],
+   discuss:["Why is Python dynamically typed? What's the risk?","When would you use float vs int in data science?","What is type coercion and why does it matter?"]},
+  {topic:"Control flow, loops & comprehensions",concepts:["if/elif/else","for & while loops","break, continue, pass","list comprehensions","dict/set comprehensions"],presenter:"You",phase:0,week:1,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Walk your friend through if/elif/else, for loops, while loops. Show break and continue with live examples."},
+         {t:"0:15–0:35",title:"Comprehension deep-dive",desc:"Together: rewrite 3 for-loops as list comprehensions. Nest one. Add a filter condition. Benchmark with %%timeit."},
+         {t:"0:35–0:50",title:"Challenge round",desc:"Each person writes a comprehension for the other to explain. Debug each other's code."},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Write FizzBuzz using a list comprehension. Compare your solutions."}],
+   discuss:["When is a list comprehension less readable than a loop?","What's the difference between break and continue?","Can you always replace a for-loop with a comprehension?"]},
+  {topic:"Functions, scope & lambda",concepts:["def, return","*args, **kwargs","lambda, map, filter","decorators basics","closures, nonlocal"],presenter:"Friend",phase:0,week:1,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Covers def, return, default arguments. Shows *args and **kwargs with concrete examples. Demos a simple decorator."},
+         {t:"0:15–0:35",title:"Build together",desc:"Write a function with *args that computes stats. Add a timing decorator. Use lambda with map() and filter() on a list."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Explore closures: write a make_multiplier factory. Explain nonlocal. Discuss when lambdas hurt readability."},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person writes a one-line summary of closures vs decorators."}],
+   discuss:["What's the difference between a closure and a class?","When should you NOT use lambda?","Why does Python have both *args and **kwargs?"]},
+  {topic:"Data structures: lists, dicts, sets",concepts:["list vs tuple vs set vs dict","O(1) dict/set lookup","Counter, defaultdict","namedtuple, dataclass","deque, heapq"],presenter:"You",phase:0,week:1,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Explain list vs tuple vs set vs dict. Show time complexity differences. Demo Counter and defaultdict from collections."},
+         {t:"0:15–0:35",title:"Hands-on",desc:"Build a word frequency counter two ways: manual dict vs Counter. Benchmark. Use a defaultdict to group items by category."},
+         {t:"0:35–0:50",title:"Discussion",desc:"When do you use a set vs a list? Implement a deque-based sliding window together."},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Draw a 2x2 matrix: ordered/unordered × unique/non-unique. Map each structure into it."}],
+   discuss:["Why is dict lookup O(1) but list search O(n)?","When would you use a namedtuple over a dict?","What's the memory tradeoff of sets?"]},
+  {topic:"OOP: classes, inheritance & dunders",concepts:["__init__, self","inheritance, super()","__repr__, __len__, __eq__","@classmethod, @staticmethod","@property"],presenter:"Friend",phase:0,week:1,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Walks through class anatomy: __init__, instance vs class attributes, self. Shows a simple inheritance chain with super()."},
+         {t:"0:15–0:35",title:"Build a Dataset class",desc:"Together: build a Dataset class wrapping a list of dicts. Add __len__, __repr__, __iter__, a .filter() method."},
+         {t:"0:35–0:50",title:"Discussion",desc:"When is inheritance the wrong choice? Explore composition via your Dataset containing a list rather than extending list."},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains @property vs a regular method to the other."}],
+   discuss:["What's the difference between @classmethod and @staticmethod?","When does inheritance break encapsulation?","What are dunder methods for and why does Python use them?"]},
+  {topic:"File I/O, exceptions & modules",concepts:["open(), context managers","CSV, JSON, YAML","try/except/finally","pathlib, os, glob","virtual envs, pip"],presenter:"You",phase:0,week:1,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Show open() with context managers. Read and write CSV and JSON. Demonstrate pathlib for cross-platform paths."},
+         {t:"0:15–0:35",title:"Build a file scanner",desc:"Write a script: scan a folder for all .csv files, load each, count rows, write a summary JSON. Handle FileNotFoundError."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why use pathlib over os.path? When should you catch a broad Exception vs specific errors?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Set up a shared virtual environment. Each person installs one library and explains what it does."}],
+   discuss:["What's the risk of bare except: clauses?","Why is pathlib preferred over string concatenation for paths?","What does __name__ == '__main__' actually do?"]},
+  {topic:"NumPy arrays & broadcasting",concepts:["ndarray, shape, dtype","arange, zeros, random","boolean masks","broadcasting rules","vectorization vs loops"],presenter:"Friend",phase:0,week:2,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Introduces ndarray: shape, dtype, ndim. Shows creation with arange, linspace, zeros, ones, random. Demonstrates slicing."},
+         {t:"0:15–0:35",title:"Broadcasting challenge",desc:"Jointly implement z-score normalisation with broadcasting only. Compare to a Python loop on 1M rows with %%timeit."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Explain broadcasting rules step by step on a 3D example. Why does (3,) + (3,1) work but (3,) + (2,) doesn't?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person draws the shape arithmetic for one broadcasting example on paper."}],
+   discuss:["Why is vectorisation so much faster than Python loops?","When does broadcasting silently give wrong results?","What's the memory layout difference between C and Fortran order?"]},
+  {topic:"NumPy linear algebra & random",concepts:["np.dot, @, matmul","np.linalg: inv, eig, svd","random seeds, distributions","np.einsum intro"],presenter:"You",phase:0,week:2,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Cover np.dot vs @, matrix multiplication rules. Show linalg.solve for Ax=b. Introduce random seeds for reproducibility."},
+         {t:"0:15–0:35",title:"Build together",desc:"Solve a 3×3 system of equations. Compute a covariance matrix manually. Verify with np.cov. Draw eigenvalues on a 2D plot."},
+         {t:"0:35–0:50",title:"Discussion",desc:"What does an eigenvalue of 0 mean geometrically? Why does SVD matter for data science?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains np.linalg.eig output in plain English."}],
+   discuss:["Why set a random seed? What are the risks of forgetting?","What's the difference between a singular and invertible matrix?","How does SVD relate to PCA?"]},
+  {topic:"Pandas Series & DataFrames",concepts:["pd.Series, pd.DataFrame","loc, iloc, at, iat",".query(), boolean indexing","dtypes, astype(), category","pd.read_csv, read_json"],presenter:"Friend",phase:0,week:2,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Walk through DataFrame creation, column selection, row filtering. Show loc vs iloc with concrete examples on Titanic dataset."},
+         {t:"0:15–0:35",title:"Indexing marathon",desc:"Together: extract 10 different subsets using every indexing method. Time each. Compare .query() vs boolean mask speed."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why does Pandas have both loc and iloc? What's the MultiIndex and when is it useful?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person writes 3 questions answerable only with loc and 3 only with iloc."}],
+   discuss:["What's a SettingWithCopyWarning and how do you avoid it?","When would you set a column as the index?","Why is the category dtype useful for memory?"]},
+  {topic:"Data cleaning with Pandas",concepts:["isna(), fillna(), dropna()","duplicated(), drop_duplicates()","str accessor","apply() vs vectorized","pd.to_datetime(), dt accessor"],presenter:"You",phase:0,week:2,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Show nulls: isna(), fillna strategies (mean, forward-fill, interpolate). Duplicates: duplicated() and drop_duplicates(). String cleaning with str accessor."},
+         {t:"0:15–0:35",title:"Messy data drill",desc:"Load a dirty real-world CSV (NYC 311 or similar). Fix dtypes, handle nulls with 3 different strategies, standardise a text column."},
+         {t:"0:35–0:50",title:"Discussion",desc:"When is it wrong to fill nulls with the mean? What's the difference between apply() and a vectorised operation?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person lists 5 red flags they'd look for first in any new dataset."}],
+   discuss:["What's the most dangerous type of missing data (MNAR)?","Why is apply() slow and when is it unavoidable?","How do you handle date parsing across different locale formats?"]},
+  {topic:"GroupBy, aggregations & time series",concepts:["groupby().agg(), transform()","pivot_table(), crosstab()","resample() for time series","rolling(), ewm()"],presenter:"Friend",phase:0,week:2,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Walks through groupby mechanics: split-apply-combine. Shows agg() with multiple functions, named aggregations, and transform()."},
+         {t:"0:15–0:35",title:"Sales analysis",desc:"On a sales dataset: compute monthly revenue by region, YoY growth, rolling 3-month average — all in one pipeline."},
+         {t:"0:35–0:50",title:"Discussion",desc:"What's the difference between agg() and transform()? When would you use crosstab vs pivot_table?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person writes a business question answerable only with a window function."}],
+   discuss:["What does transform() return vs agg()?","Why does resample() require a DatetimeIndex?","When is a rolling mean misleading?"]},
+  {topic:"Merging, reshaping & memory optimisation",concepts:["merge(), join(), concat()","melt(), stack(), unstack()","explode() for list columns","Categorical dtype for memory","chunked reading"],presenter:"You",phase:0,week:2,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Cover merge types (inner, left, right, outer). Show melt for wide→long reshaping. Demonstrate Categorical dtype memory savings."},
+         {t:"0:15–0:35",title:"Join challenge",desc:"Join 3 datasets (orders, customers, products). Reshape wide to long. Reduce memory by converting string columns to Categorical."},
+         {t:"0:35–0:50",title:"Discussion",desc:"What's the difference between merge and join? When does a left join silently introduce nulls?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Profile memory before and after Categorical conversion. Record the percentage saved."}],
+   discuss:["When does an inner join lose data you wanted to keep?","What's the risk of a many-to-many merge?","Why read in chunks for large files?"]},
+  {topic:"Descriptive statistics",concepts:["mean, median, mode, std","variance, IQR, skewness","percentiles, quantiles","robust stats: trimmed mean, MAD","outlier detection: IQR method"],presenter:"Friend",phase:0,week:3,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Walk through every descriptive stat: mean, median, mode, variance, std, IQR, skewness, kurtosis. Show when each tells a different story."},
+         {t:"0:15–0:35",title:"Stats from scratch",desc:"Compute all stats manually (no .describe()) on a dataset. Then verify with Pandas. Identify 3 outliers using IQR rule."},
+         {t:"0:35–0:50",title:"Discussion",desc:"When is the median better than the mean? What does high kurtosis tell you about a distribution?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person picks a real-world scenario where the mean is dangerously misleading."}],
+   discuss:["Why do income distributions use median instead of mean?","What's the difference between variance and standard deviation conceptually?","When is skewness a problem for machine learning?"]},
+  {topic:"Probability fundamentals",concepts:["sample space, events","conditional probability P(A|B)","Bayes' theorem","independence","permutations, combinations"],presenter:"You",phase:0,week:3,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Cover sample space, events, P(A), union, intersection. Derive conditional probability. State Bayes' theorem with a medical test example."},
+         {t:"0:15–0:35",title:"Simulate together",desc:"Code the Monty Hall problem (10,000 trials). Prove Bayes' theorem numerically for a cancer screening scenario."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Walk through the base rate fallacy. Why does a 99% accurate test for a rare disease give mostly false positives?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person writes Bayes' theorem in their own words without any symbols."}],
+   discuss:["What's the difference between P(A|B) and P(B|A)?","Why is the Monty Hall result so counterintuitive?","How does Bayes' theorem apply to spam filters?"]},
+  {topic:"Probability distributions",concepts:["Normal: PDF, CDF, z-score","Binomial: n, p","Poisson: rate events","Bernoulli, Uniform, Exponential","scipy.stats, QQ-plots"],presenter:"Friend",phase:0,week:3,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Introduce Normal, Binomial, Poisson, Exponential distributions. Show PDF vs CDF. Demonstrate z-scores with a practical example."},
+         {t:"0:15–0:35",title:"Fit distributions",desc:"Fit Normal and Poisson to a real dataset (e.g. daily website visits). Plot histograms overlaid with fitted PDFs. Run a chi-square goodness-of-fit test."},
+         {t:"0:35–0:50",title:"Discussion",desc:"When does a QQ-plot reveal non-normality? What does the CLT say about non-normal data?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person links one distribution to a real data science problem they'd use it for."}],
+   discuss:["Why is the Normal distribution so common in nature?","When would you choose Poisson over Binomial?","What happens to model performance when you assume normality and the data isn't?"]},
+  {topic:"Sampling & Central Limit Theorem",concepts:["population vs sample","sampling methods","CLT: sample means → Normal","standard error, bootstrap","law of large numbers"],presenter:"You",phase:0,week:3,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Explain the CLT: no matter the population shape, sample means approach Normal as n grows. Show law of large numbers. Introduce bootstrap."},
+         {t:"0:15–0:35",title:"CLT experiment",desc:"Together: sample from a highly skewed Pareto distribution. Show that means of n=5, 30, 100 samples approach Normal. Plot all three."},
+         {t:"0:35–0:50",title:"Discussion",desc:"What is standard error and how does it differ from standard deviation? Why does bootstrap work?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains CLT to an imaginary 10-year-old using a real-world analogy."}],
+   discuss:["What's the minimum sample size for CLT to apply?","How does bootstrap let you estimate a confidence interval without parametric assumptions?","Why does stratified sampling reduce standard error?"]},
+  {topic:"Hypothesis testing",concepts:["null vs alt hypothesis","Type I (α) & Type II (β) errors","p-value interpretation","z-test, t-test","chi-square test","power, effect size (Cohen's d)"],presenter:"Friend",phase:0,week:3,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Define null/alt hypothesis, Type I/II errors. Explain p-value correctly. Walk through a one-sample t-test from scratch."},
+         {t:"0:15–0:35",title:"Full hypothesis test",desc:"Run a complete test: define H0/H1, compute t-statistic manually, find p-value, interpret at α=0.05. Verify with scipy.stats."},
+         {t:"0:35–0:50",title:"Discussion",desc:"What does p<0.05 NOT mean? Debate: p-values vs effect sizes for practical significance."},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person writes one real-world decision they'd make differently knowing Type II errors exist."}],
+   discuss:["What's the difference between statistical and practical significance?","Why is p=0.049 not meaningfully different from p=0.051?","What's p-hacking and why is it a crisis in science?"]},
+  {topic:"Confidence intervals, ANOVA & correlation",concepts:["CI construction: mean, proportion","one-way ANOVA, F-statistic","Tukey HSD post-hoc","Pearson vs Spearman","Bonferroni correction"],presenter:"You",phase:0,week:3,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Explain confidence intervals: what they do and don't mean. Walk through ANOVA for comparing 3+ groups. Show Pearson vs Spearman correlation."},
+         {t:"0:15–0:35",title:"ANOVA in practice",desc:"Given 4 marketing campaign groups, run one-way ANOVA. If significant, run Tukey HSD. Visualise with a box plot."},
+         {t:"0:35–0:50",title:"Discussion",desc:"What's the multiple comparisons problem? When does correlation mislead (Anscombe's quartet)?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person finds one famous example of correlation being mistaken for causation."}],
+   discuss:["What does '95% confidence interval' actually mean?","Why run ANOVA before pairwise t-tests?","When is Spearman better than Pearson?"]},
+  {topic:"Matplotlib fundamentals",concepts:["Figure, Axes, subplots","line, bar, scatter, histogram","titles, labels, annotations","colour palettes, style sheets","savefig, DPI"],presenter:"Friend",phase:0,week:4,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Walk through the Matplotlib object model: Figure → Axes → Artists. Show 5 chart types with proper labels, gridlines, and colour scheme."},
+         {t:"0:15–0:35",title:"Chart recreation",desc:"Together: recreate a bar chart, histogram, and scatter plot from a dataset. Add annotations for outliers. Save at 300 DPI."},
+         {t:"0:35–0:50",title:"Discussion",desc:"When does a pie chart fail? Debate bar vs dot plot for comparing categories."},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person designs a chart that intentionally misleads and explains why."}],
+   discuss:["What's the difference between plt.plot() and ax.plot()?","When does dual-axis mislead the reader?","What makes a chart 'publication ready'?"]},
+  {topic:"Seaborn & statistical plots",concepts:["catplot, boxplot, violinplot","scatterplot with hue/size","heatmap, pairplot","FacetGrid for multi-panel","Seaborn themes"],presenter:"You",phase:0,week:4,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Introduce Seaborn's API: figure-level vs axes-level. Show pairplot, heatmap, violinplot. Set themes and palettes."},
+         {t:"0:15–0:35",title:"Visual EDA",desc:"On Iris or Penguins dataset: pairplot, correlation heatmap, violin by species, faceted scatter. Each person builds one panel."},
+         {t:"0:35–0:50",title:"Discussion",desc:"When is a violin plot better than a box plot? What does the heatmap diagonal always show?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person picks their single favourite chart type and defends the choice."}],
+   discuss:["What's the difference between a violin and a box plot?","When does adding hue to a scatter plot add noise instead of insight?","Why is colour choice a data integrity issue (colourblindness)?"]},
+  {topic:"Interactive visualisation with Plotly",concepts:["plotly.express basics","scatter, bar, line, histogram","hover tooltips, dropdowns","animation with frames","Altair for declarative charts"],presenter:"Friend",phase:0,week:4,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Show plotly.express vs graph_objects. Build an animated time series. Add dropdown filter for metric selection."},
+         {t:"0:15–0:35",title:"Dashboard sprint",desc:"Build a small interactive dashboard together: metric selector dropdown + animated chart + custom hover tooltips."},
+         {t:"0:35–0:50",title:"Discussion",desc:"When does interactivity add confusion? Compare Plotly vs Altair philosophy (imperative vs declarative)."},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person lists 3 scenarios where a static chart is better than an interactive one."}],
+   discuss:["When does interactivity hurt comprehension?","Why use Altair vs Plotly?","What's the chart type you'd always make interactive first?"]},
+  {topic:"Linear algebra — vectors & matrices",concepts:["vectors: magnitude, dot product","matrix multiplication, transpose","invertibility, rank","linear transformations","numpy implementations"],presenter:"You",phase:0,week:4,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Cover vectors (magnitude, direction, dot product). Matrix multiplication rules. Invertibility. Show geometric meaning of linear transformations."},
+         {t:"0:15–0:35",title:"Build from scratch",desc:"Implement matrix multiplication without np.dot. Visualise a 2D rotation matrix transforming a set of points in Matplotlib."},
+         {t:"0:35–0:50",title:"Discussion",desc:"What does a zero determinant mean geometrically? How do transformations connect to data preprocessing?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains matrix multiplication as a physical transformation to the other."}],
+   discuss:["Why is matrix multiplication not commutative?","What does a transformation matrix with determinant 0 do to space?","How does scaling relate to normalisation in ML?"]},
+  {topic:"Eigenvalues, SVD & intro to calculus",concepts:["eigenvalues & eigenvectors","SVD: U, Σ, Vᵀ","image compression via SVD","derivatives, chain rule","gradient as steepest ascent"],presenter:"Friend",phase:0,week:4,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Explain eigenvalues geometrically (vectors that don't change direction under transformation). Intro SVD. Show how rank-k SVD compresses an image."},
+         {t:"0:15–0:35",title:"SVD image compression",desc:"Compress a grayscale image at rank 5, 20, 50, 100. Plot RMSE vs rank. Decide together: what's the minimum acceptable rank?"},
+         {t:"0:35–0:50",title:"Calculus intro",desc:"Compute analytical gradient of MSE loss manually. Verify with numerical gradient check. Plot the loss surface."},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains the chain rule using one composition of functions."}],
+   discuss:["Why do the largest singular values capture the most information?","How does SVD relate to dimensionality reduction in ML?","What does the gradient point towards and why does that matter for training?"]},
+  {topic:"Gradient descent & optimisation",concepts:["cost function, loss surface","batch vs SGD vs mini-batch","learning rate, momentum","convex vs non-convex","saddle points, local minima","numerical gradient check"],presenter:"You",phase:0,week:4,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Visualise the loss surface as a bowl. Walk through gradient descent update rule. Show batch vs SGD vs mini-batch differences."},
+         {t:"0:15–0:35",title:"Implement GD",desc:"Implement gradient descent to minimise a 2D quadratic. Animate the path for learning rates 0.001, 0.1, 1.0. Show overshooting."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why does a high learning rate diverge? What's momentum and how does it help escape saddle points?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person draws a 2D loss surface and marks: global min, local min, saddle point, plateau."}],
+   discuss:["Why is SGD noisier but sometimes faster than batch GD?","What's the intuition behind momentum in optimisers?","Why do neural networks rarely get stuck in local minima?"]},
+  {topic:"SQL fundamentals",concepts:["SELECT, WHERE, ORDER BY","DISTINCT, aliases, CASE WHEN","AND/OR/NOT, IN, LIKE, BETWEEN","NULL: IS NULL, COALESCE","string & date functions"],presenter:"Friend",phase:1,week:5,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Walk through SELECT basics, WHERE filtering, ORDER BY, LIMIT. Show CASE WHEN for conditional columns. Handle NULLs with COALESCE."},
+         {t:"0:15–0:35",title:"Query practice",desc:"Together: write 10 queries on a sample database (DVD Rental or Northwind). Cover each concept at least once."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why does WHERE run before SELECT? What's the risk of a LIKE '%...' query on a large table?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person writes one query they'd run first on any new database they'd never seen before."}],
+   discuss:["Why does NULL ≠ NULL in SQL?","When is CASE WHEN better than filtering rows?","What's the execution order of a SQL query (FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY)?"]},
+  {topic:"SQL joins & aggregations",concepts:["INNER, LEFT, RIGHT, FULL OUTER JOIN","self-joins, cross joins","GROUP BY, HAVING","subqueries (scalar, correlated)","UNION, INTERSECT, EXCEPT"],presenter:"You",phase:1,week:5,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Explain each join type with Venn diagrams. Walk through GROUP BY + HAVING. Show a correlated subquery."},
+         {t:"0:15–0:35",title:"Join challenges",desc:"Solve 5 StrataScratch SQL problems at medium difficulty. Each person writes the query, then explains the logic."},
+         {t:"0:35–0:50",title:"Discussion",desc:"When does a LEFT JOIN silently lose data you expected to keep? What's a many-to-many join and why is it dangerous?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person draws the rows returned by INNER vs LEFT JOIN for a tiny 3-row example."}],
+   discuss:["What's the difference between WHERE and HAVING?","Why is a correlated subquery often slow?","When would you use EXCEPT instead of NOT IN?"]},
+  {topic:"Window functions & CTEs",concepts:["ROW_NUMBER, RANK, DENSE_RANK","LAG, LEAD, FIRST_VALUE","SUM OVER, AVG OVER (running totals)","PARTITION BY vs GROUP BY","WITH clause (CTEs), recursive CTEs"],presenter:"Friend",phase:1,week:5,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Explain window functions: they compute across rows without collapsing them. Show RANK, LAG, running SUM OVER. Contrast with GROUP BY."},
+         {t:"0:15–0:35",title:"Analytics queries",desc:"Together: 7-day rolling avg revenue, rank customers by LTV within region, find each user's first and last order — in one query each."},
+         {t:"0:35–0:50",title:"Discussion",desc:"What's the difference between RANK and DENSE_RANK? When does a CTE improve readability vs a subquery?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person writes a business question solvable only with a window function (not GROUP BY)."}],
+   discuss:["Why can't you use a window function in a WHERE clause?","When does a recursive CTE make sense?","What's the performance cost of window functions on large tables?"]},
+  {topic:"Python ↔ database integration",concepts:["SQLAlchemy Core & ORM","psycopg2 for PostgreSQL","sqlite3 for local dev","pandas.read_sql_query()","connection pooling"],presenter:"You",phase:1,week:5,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Show sqlite3 for local dev. Introduce SQLAlchemy Core. Demonstrate read_sql_query() to pull results into a DataFrame."},
+         {t:"0:15–0:35",title:"End-to-end script",desc:"Write a Python script: connect to SQLite → run a query → load into Pandas → analyse → write summary back to a new table."},
+         {t:"0:35–0:50",title:"Discussion",desc:"What's the difference between SQLAlchemy Core and ORM? When does connection pooling matter?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains what an ORM is to someone who has never heard of it."}],
+   discuss:["What's SQL injection and why does parameterised queries prevent it?","When would you use an ORM vs raw SQL?","What's the risk of loading a 10GB query result into a DataFrame?"]},
+  {topic:"APIs & web scraping",concepts:["requests: GET, POST, headers","API keys, OAuth2 basics","pagination, rate limiting","JSON parsing","BeautifulSoup for HTML","robots.txt, ethical scraping"],presenter:"Friend",phase:1,week:5,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Walk through requests library. Show authentication with API keys. Handle pagination and rate limiting. Parse JSON responses."},
+         {t:"0:15–0:35",title:"Collect real data",desc:"Together: hit a public API (Open Meteo weather or REST Countries), handle pagination, store 500 records to SQLite."},
+         {t:"0:35–0:50",title:"Discussion",desc:"What's ethical scraping? What does robots.txt say and why should you respect it?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person lists 3 data collection scenarios where an API is better than scraping."}],
+   discuss:["What's the difference between REST and GraphQL APIs?","Why might a website block your scraper and how do you handle it ethically?","What's rate limiting and why do APIs impose it?"]},
+  {topic:"Data formats: Parquet, JSON, CSV",concepts:["CSV vs JSON vs Parquet vs Avro","Parquet: columnar, compression","reading Parquet with pyarrow","data lake vs warehouse concepts","Delta Lake basics"],presenter:"You",phase:1,week:5,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Compare CSV, JSON, Parquet, Avro. Explain columnar storage benefits for analytics. Show read/write Parquet with pandas + pyarrow."},
+         {t:"0:15–0:35",title:"Format benchmark",desc:"Convert a 500MB CSV to Parquet and JSON. Compare: file size, read speed, memory usage. Profile with %%timeit and %memit."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why is Parquet better for analytical workloads? What's schema evolution and why does Avro handle it well?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person draws the data pipeline at their imaginary company and marks where each format would be used."}],
+   discuss:["Why does columnar storage make aggregation faster?","When would you choose JSON over Parquet?","What's the difference between a data lake and a data warehouse?"]},
+  {topic:"The ML workflow & scikit-learn",concepts:["supervised vs unsupervised vs RL","train/val/test split","Pipeline, ColumnTransformer","data leakage: how to avoid","fit(), predict(), score()"],presenter:"Friend",phase:1,week:6,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Walk through the full ML workflow. Define supervised, unsupervised, RL. Explain data leakage with a concrete example. Show sklearn Pipeline."},
+         {t:"0:15–0:35",title:"First pipeline",desc:"Build a full sklearn Pipeline on Titanic: imputation → scaling → logistic regression. Measure baseline accuracy. Identify one source of potential leakage."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why is data leakage so dangerous? Describe a real example where a model seemed perfect but failed in production."},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person draws the sklearn Pipeline they just built as a diagram."}],
+   discuss:["What's the difference between validation set and test set?","How can preprocessing inside a pipeline prevent leakage?","Why is sklearn's API (fit/predict) so powerful for consistency?"]},
+  {topic:"Linear regression: theory & practice",concepts:["OLS: minimising SSE","normal equation vs gradient descent","R², MSE, RMSE, MAE assumptions","residual analysis, QQ-plots","polynomial features"],presenter:"You",phase:1,week:6,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Derive OLS geometrically. Show normal equation. Walk through 4 regression assumptions. Explain R² and adjusted R²."},
+         {t:"0:15–0:35",title:"Fit and diagnose",desc:"Fit linear regression on housing prices manually (normal equation) and sklearn. Plot residuals. Check assumptions. Add polynomial features."},
+         {t:"0:35–0:50",title:"Discussion",desc:"When does R² lie to you? What's heteroscedasticity and why does it matter?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person writes the 4 OLS assumptions in plain English."}],
+   discuss:["Why do you check residuals after fitting a regression?","What does it mean when residuals are not normally distributed?","When is RMSE a worse metric than MAE?"]},
+  {topic:"Logistic regression & classification",concepts:["sigmoid function, log-odds","binary cross-entropy loss","decision boundary visualisation","multi-class: softmax","threshold tuning","class_weight for imbalance"],presenter:"Friend",phase:1,week:6,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Explain why linear regression fails for classification. Introduce sigmoid, log-odds. Derive binary cross-entropy loss. Show decision boundary."},
+         {t:"0:15–0:35",title:"Threshold experiment",desc:"Train logistic regression on a medical dataset. Move threshold: 0.3, 0.5, 0.7. Plot confusion matrix for each. Discuss the tradeoff."},
+         {t:"0:35–0:50",title:"Discussion",desc:"What happens to precision and recall as you lower the threshold? When is that the right tradeoff?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains log-odds to the other without using any mathematical notation."}],
+   discuss:["Why is accuracy a bad metric for imbalanced classes?","What does the decision boundary look like for logistic regression?","When would you prefer a lower threshold in a cancer screening model?"]},
+  {topic:"Evaluation metrics",concepts:["confusion matrix, precision, recall, F1","ROC curve, AUC-ROC","PR curve for imbalanced data","MCC, log loss, Brier score","regression: MAE, RMSE, MAPE, R²"],presenter:"You",phase:1,week:6,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Walk through confusion matrix, precision, recall, F1. Draw ROC curve from scratch. Explain AUC intuitively. Show PR curve."},
+         {t:"0:15–0:35",title:"Metric comparison",desc:"For a fraud dataset (1% positive class): evaluate a model by accuracy, F1, AUC-ROC, PR-AUC. Show why accuracy is misleading here."},
+         {t:"0:35–0:50",title:"Discussion",desc:"When is AUC-ROC optimistic for imbalanced data? What does MCC capture that F1 misses?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person picks the metric they'd use for: fraud detection, medical diagnosis, search ranking. Defend each choice."}],
+   discuss:["What does AUC-ROC = 0.5 mean?","Why does PR curve matter more than ROC for rare events?","What's the difference between macro and micro F1?"]},
+  {topic:"Regularisation: Ridge, Lasso, ElasticNet",concepts:["bias-variance tradeoff","L2 (Ridge): shrinks coefficients","L1 (Lasso): sparse, feature selection","ElasticNet: mix of L1+L2","RidgeCV, LassoCV","regularisation path"],presenter:"Friend",phase:1,week:6,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Explain bias-variance tradeoff visually. Introduce L1 and L2 penalties. Show how Lasso creates sparsity. Contrast Ridge coefficient paths."},
+         {t:"0:15–0:35",title:"Regularisation experiment",desc:"On a high-dimensional dataset (p > n): show OLS fails → add Ridge, Lasso, ElasticNet → plot coefficients vs alpha → identify Lasso eliminations."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why does Lasso set coefficients to exactly zero while Ridge doesn't? When would you prefer Ridge?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains the bias-variance tradeoff using an archery analogy."}],
+   discuss:["Why does L1 create sparsity geometrically?","When would ElasticNet outperform both Ridge and Lasso?","What's the connection between regularisation and Bayesian priors?"]},
+  {topic:"Feature engineering",concepts:["one-hot, ordinal, target encoding","StandardScaler, MinMaxScaler, RobustScaler","log transform for skewed features","binning, polynomial features","ColumnTransformer, custom transformers"],presenter:"You",phase:1,week:6,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Cover encoding types: one-hot vs ordinal vs target. Explain when each breaks. Show StandardScaler vs MinMaxScaler vs RobustScaler differences."},
+         {t:"0:15–0:35",title:"Feature pipeline",desc:"Build a full ColumnTransformer: numeric (impute + scale) and categorical (encode). Add a log transform for a skewed column. Verify with histograms."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why can target encoding cause leakage? When does scaling not matter at all?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person lists 3 feature engineering moves they'd try first on a new tabular dataset."}],
+   discuss:["When does one-hot encoding create problems (high-cardinality columns)?","Why doesn't feature scaling affect tree-based models?","What's the risk of target encoding without cross-fitting?"]},
+  {topic:"Decision trees",concepts:["entropy, Gini impurity","max_depth, min_samples_split","pruning: pre vs post","regression trees","feature importance","visualising trees"],presenter:"Friend",phase:1,week:7,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Explain how a decision tree splits: information gain, Gini. Show max_depth effect. Visualise a depth-3 tree and trace a prediction path."},
+         {t:"0:15–0:35",title:"Depth experiment",desc:"Train trees at depth 3, 5, 10, unlimited. Plot train vs val accuracy. Visualise depth-3 tree. Explain one full prediction path out loud."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why do deep trees overfit? What's the connection between tree depth and bias-variance?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person writes the decision rule at the root of their tree in plain English."}],
+   discuss:["Why are decision trees called white-box models?","How does a regression tree decide where to split?","What's the difference between pruning and limiting max_depth?"]},
+  {topic:"Random forests",concepts:["bagging (bootstrap aggregation)","feature subsampling per split","OOB error estimate","feature importance (MDI & permutation)","Extra Trees"],presenter:"You",phase:1,week:7,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Explain bagging: why combining weak learners reduces variance. Show how random forests add feature subsampling. Introduce OOB error."},
+         {t:"0:15–0:35",title:"Single vs forest",desc:"Compare a single decision tree vs random forest on a noisy dataset. Plot learning curves (train size vs accuracy) for both side by side."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why does adding more trees in a random forest eventually stop helping? What's the difference between MDI and permutation importance?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains bagging to the other using a voting analogy."}],
+   discuss:["Why does random feature subsampling make trees more diverse?","When does a random forest overfit?","What's wrong with MDI feature importance when features are correlated?"]},
+  {topic:"Gradient boosting & XGBoost",concepts:["boosting: sequential weak learners","fit residuals at each step","XGBoost: regularisation, parallel trees","learning rate vs n_estimators","early stopping","SHAP for XGBoost"],presenter:"Friend",phase:1,week:7,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Explain boosting: each tree fixes the errors of the last. Show gradient boosting update rule. Introduce XGBoost regularisation terms."},
+         {t:"0:15–0:35",title:"XGBoost in practice",desc:"Train XGBoost on a Kaggle dataset. Add early stopping. Plot feature importance with gain and SHAP. Compare to random forest."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why is XGBoost usually better than random forest on tabular data? What does SHAP tell you that raw importance doesn't?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains SHAP values to the other using one specific prediction as an example."}],
+   discuss:["Why can gradient boosting overfit more easily than random forest?","What's the intuition behind fitting residuals at each step?","What does a SHAP waterfall plot tell you about one prediction?"]},
+  {topic:"LightGBM & CatBoost",concepts:["LightGBM: leaf-wise vs level-wise","histogram-based binning","CatBoost: ordered boosting","native categoricals in CatBoost","GPU training","when to use which"],presenter:"You",phase:1,week:7,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Contrast LightGBM (leaf-wise, faster) vs XGBoost (level-wise). Explain CatBoost's ordered boosting to prevent target leakage."},
+         {t:"0:15–0:35",title:"Three-way race",desc:"Train XGBoost, LightGBM, CatBoost on the same dataset. Compare: training time, AUC, memory. Use native categorical support in CatBoost."},
+         {t:"0:35–0:50",title:"Discussion",desc:"When does leaf-wise growth hurt? When is CatBoost worth the extra training time?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Draw a decision tree: 'Given a new tabular problem, which boosting library do you try first?'"}],
+   discuss:["Why is leaf-wise growth faster but riskier than level-wise?","When does CatBoost's native categorical handling beat one-hot encoding?","What's histogram binning and why does it speed up training?"]},
+  {topic:"Hyperparameter tuning",concepts:["GridSearchCV, RandomizedSearchCV","Optuna (Bayesian optimisation)","MedianPruner for bad trials","logging trials, visualising search","tuning strategy: coarse → fine"],presenter:"Friend",phase:1,week:7,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Explain grid search vs random search vs Bayesian optimisation. Show Optuna trial workflow. Introduce MedianPruner for efficiency."},
+         {t:"0:15–0:35",title:"Optuna sprint",desc:"Together: run 50 Optuna trials tuning XGBoost. Plot optimisation history. Show parameter importances. Find the best trial."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why is Bayesian optimisation more efficient than random search? What's the risk of over-tuning on the validation set?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person defines 3 hyperparameters they'd always tune first and explains why."}],
+   discuss:["Why is grid search exponential in the number of parameters?","What is Bayesian optimisation actually optimising?","Why can tuning on a fixed validation set lead to overfitting the tuning process?"]},
+  {topic:"Cross-validation & model selection",concepts:["K-Fold, StratifiedKFold, RepeatedKFold","TimeSeriesSplit for temporal data","nested CV for honest evaluation","comparing models: statistical tests","cross_val_predict for diagnostics"],presenter:"You",phase:1,week:7,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Walk through K-Fold, Stratified, and TimeSeriesSplit. Explain why nested CV gives honest estimates. Show cross_val_predict."},
+         {t:"0:15–0:35",title:"Model shootout",desc:"Compare 5 models (LR, Decision Tree, RF, XGBoost, LightGBM) using 5-fold stratified CV. Run a Wilcoxon signed-rank test on CV scores."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why is TimeSeriesSplit critical for temporal data? What does nested CV protect against?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains why shuffling a time series before CV gives you falsely high accuracy."}],
+   discuss:["What's the problem with a simple train/test split for model selection?","Why is nested CV rarely used in industry despite being more honest?","What's the Wilcoxon test and why is it better than a paired t-test here?"]},
+  {topic:"K-Means clustering",concepts:["centroid init (k-means++)","elbow method (inertia)","silhouette score","mini-batch K-Means","limitations: spherical, outlier sensitivity"],presenter:"Friend",phase:1,week:8,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Walk through K-Means update loop. Show k-means++ initialisation. Explain inertia, silhouette score. Discuss limitations."},
+         {t:"0:15–0:35",title:"Cluster analysis",desc:"Cluster a customer dataset for k=2 to 10. Plot elbow + silhouette. Profile each cluster with descriptive stats. Name the segments."},
+         {t:"0:35–0:50",title:"Discussion",desc:"When does K-Means fail completely? How would you cluster non-spherical data?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person draws a 2D scatterplot where K-Means would give the wrong answer."}],
+   discuss:["Why does K-Means assume spherical clusters?","What's the risk of initialising centroids randomly?","How do you handle K-Means for mixed (numeric + categorical) data?"]},
+  {topic:"DBSCAN & hierarchical clustering",concepts:["DBSCAN: eps, min_samples, noise points","arbitrary shape clusters","agglomerative: linkage methods","dendrogram interpretation","OPTICS for variable density"],presenter:"You",phase:1,week:8,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Explain DBSCAN: core, border, noise points. Show linkage methods for hierarchical. Read a dendrogram. Compare to K-Means."},
+         {t:"0:15–0:35",title:"Geospatial clustering",desc:"Apply DBSCAN to lat/lon data. Tune eps and min_samples. Identify noise points. Compare clusters to K-Means on the same data."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why can DBSCAN identify outliers but K-Means cannot? How do you choose eps without domain knowledge?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person names one use case where DBSCAN is clearly better than K-Means."}],
+   discuss:["What's the curse of high-dimensional spaces for DBSCAN?","How does single-linkage differ from complete-linkage agglomerative?","When would you choose hierarchical over K-Means?"]},
+  {topic:"PCA — principal component analysis",concepts:["variance explained, scree plot","loadings matrix","biplot","choosing n_components","PCA for visualisation (2D/3D)","PCA as preprocessing"],presenter:"Friend",phase:1,week:8,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Explain PCA geometrically: rotate axes to maximise variance. Show scree plot, loadings. Contrast PCA for viz vs preprocessing."},
+         {t:"0:15–0:35",title:"PCA experiment",desc:"Apply PCA to a 50-feature dataset. Visualise first 2 PCs by class. Use PCA as pre-step before SVM. Compare accuracy with and without."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why must you standardise before PCA? What does a loading of 0.9 on PC1 mean?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains one PC in their dataset in a single plain-English sentence."}],
+   discuss:["What does PCA lose compared to the original features?","Why does standardising matter so much for PCA?","When does PCA as preprocessing hurt model performance?"]},
+  {topic:"t-SNE & UMAP for visualisation",concepts:["t-SNE: perplexity, early exaggeration","UMAP: n_neighbors, min_dist","distances NOT reliable in t-SNE","UMAP: faster, more faithful","embedding images, text, tabular data"],presenter:"You",phase:1,week:8,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Contrast PCA (linear) vs t-SNE vs UMAP (non-linear). Explain perplexity in t-SNE. Show UMAP's n_neighbors effect on global structure."},
+         {t:"0:15–0:35",title:"Embedding race",desc:"Embed MNIST 784-dim into 2D using PCA, t-SNE, UMAP. Compare cluster separation. Time each method on 10,000 samples."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why can't you trust distances between clusters in t-SNE? What does a 'clear' t-SNE separation prove vs not prove?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person lists one misinterpretation of t-SNE they've seen or could imagine."}],
+   discuss:["Why do t-SNE results look different every run?","What does UMAP preserve that t-SNE doesn't?","Can a clean t-SNE prove that a classifier will work well?"]},
+  {topic:"Anomaly detection",concepts:["Isolation Forest: path length","One-Class SVM","Local Outlier Factor (LOF)","Elliptic Envelope","threshold: contamination param","evaluation with rare labels"],presenter:"Friend",phase:1,week:8,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Walk through Isolation Forest: anomalies are isolated faster. Show LOF local density idea. Contrast One-Class SVM boundary approach."},
+         {t:"0:15–0:35",title:"Fraud detection",desc:"Apply all 4 anomaly detectors to a credit card fraud dataset. Compare detection rates at various contamination values."},
+         {t:"0:35–0:50",title:"Discussion",desc:"How do you evaluate an anomaly detector when you have no labels? What's the precision-recall tradeoff for contamination?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains Isolation Forest to the other using a binary search analogy."}],
+   discuss:["Why does Isolation Forest work well in high dimensions?","What's the difference between outlier detection and novelty detection?","How do you choose a contamination threshold in production?"]},
+  {topic:"Association rules",concepts:["market basket analysis","support, confidence, lift","Apriori algorithm","FP-Growth (faster)","collaborative filtering intro","content-based filtering intro"],presenter:"You",phase:1,week:8,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Explain support, confidence, lift with grocery examples. Walk through Apriori step by step. Show FP-Growth as the scalable alternative."},
+         {t:"0:15–0:35",title:"Basket analysis",desc:"Run Apriori on a grocery transaction dataset with mlxtend. Extract top 20 rules by lift. Interpret 5 rules in plain business language."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why is high lift more useful than high confidence? What's the difference between collaborative and content-based filtering?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person writes one rule they found surprising and explains why."}],
+   discuss:["Why is high confidence without high lift a bad rule?","What's the main weakness of Apriori at scale?","How do association rules relate to recommendation systems?"]},
+  {topic:"SVMs",concepts:["maximum margin classifier","soft margin, C parameter","kernel trick: RBF, polynomial","SVC vs LinearSVC","support vectors","SVR for regression"],presenter:"Friend",phase:1,week:9,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Explain the maximum margin classifier geometrically. Show support vectors. Introduce C for soft margin. Explain the kernel trick concept."},
+         {t:"0:15–0:35",title:"Kernel comparison",desc:"Compare RBF vs linear kernel SVM on a non-linearly separable dataset. Visualise decision boundaries. Grid-search C and gamma."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why can you have many points 'inside' the margin with soft SVM? What does C actually control intuitively?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains the kernel trick without using the word 'kernel'."}],
+   discuss:["What's the support vector and why does the margin depend only on it?","Why does RBF SVM become slow on large datasets?","When would you choose SVM over a gradient boosted tree?"]},
+  {topic:"Naive Bayes & kNN",concepts:["Gaussian, Multinomial, Bernoulli NB","Laplace smoothing","NB for text (fast baseline)","kNN: k, distance metrics","curse of dimensionality","kNN for regression"],presenter:"You",phase:1,week:9,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Walk through Naive Bayes probability calculation. Explain the 'naive' assumption. Show Multinomial NB for text. Contrast with kNN's lazy learning."},
+         {t:"0:15–0:35",title:"Text classification",desc:"Use Multinomial NB as text baseline on 20 Newsgroups. Compare to kNN. Record: accuracy, training time, prediction time."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why is the 'naive' independence assumption usually wrong but NB still works? What's the curse of dimensionality?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person writes the scenario where they'd reach for NB first."}],
+   discuss:["Why does kNN degrade badly in high dimensions?","What is Laplace smoothing and why do you need it?","Why is kNN called a lazy learner?"]},
+  {topic:"Time series: concepts & decomposition",concepts:["trend, seasonality, cyclicality","additive vs multiplicative","statsmodels seasonal_decompose","stationarity: ADF, KPSS tests","differencing","ACF & PACF plots"],presenter:"Friend",phase:1,week:9,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Explain time series components: trend, seasonality, cyclicality, residual. Additive vs multiplicative. Run seasonal_decompose."},
+         {t:"0:15–0:35",title:"Decompose & test",desc:"Decompose a retail sales series. Run ADF test. Plot ACF/PACF. Make the series stationary by differencing. Re-run ADF to verify."},
+         {t:"0:35–0:50",title:"Discussion",desc:"What does a unit root mean and why does stationarity matter for ARIMA? When is multiplicative decomposition more appropriate?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person draws a time series from memory that shows all 4 components at once."}],
+   discuss:["Why does ARIMA require stationarity?","What's the difference between seasonality and cyclicality?","How do you read a PACF plot to choose the AR order?"]},
+  {topic:"ARIMA & exponential smoothing",concepts:["AR(p), MA(q), ARIMA(p,d,q)","selecting p,d,q from ACF/PACF","auto_arima (pmdarima)","SARIMA for seasonal series","Holt-Winters","evaluating: RMSE, MAPE, SMAPE"],presenter:"You",phase:1,week:9,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Explain ARIMA parameters p, d, q. Show how ACF/PACF guide selection. Introduce SARIMA seasonal extension. Contrast with Holt-Winters."},
+         {t:"0:15–0:35",title:"Forecast comparison",desc:"Forecast 6 months of retail sales with ARIMA and Holt-Winters. Compare RMSE on holdout. Plot forecast with confidence intervals."},
+         {t:"0:35–0:50",title:"Discussion",desc:"What does the d parameter in ARIMA do to the data? When does Holt-Winters outperform ARIMA?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains what a confidence interval on a forecast means vs a confidence interval on a mean."}],
+   discuss:["What's the risk of a very high order ARIMA (p=12, q=12)?","Why might Holt-Winters be preferred in business settings?","What does MAPE fail to capture?"]},
+  {topic:"Prophet & ML for time series",concepts:["Prophet: trend + seasonality components","holidays & custom regressors","uncertainty intervals","LightGBM with lag features","walk-forward validation"],presenter:"Friend",phase:1,week:9,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Show Prophet's decomposable model: trend + weekly + yearly + holidays. Add custom seasonality. Show uncertainty intervals."},
+         {t:"0:15–0:35",title:"Prophet vs LightGBM",desc:"Apply Prophet to a multi-seasonal series. Add holiday effects. Compare to LightGBM with lag features using walk-forward CV."},
+         {t:"0:35–0:50",title:"Discussion",desc:"What's walk-forward validation and why is it critical for time series? When does ML beat statistical models?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person lists 3 types of features they'd engineer from a timestamp column."}],
+   discuss:["Why is cross-validation wrong for time series?","What lag features would you create for daily sales forecasting?","When does Prophet fail?"]},
+  {topic:"Model pipelines & stacking",concepts:["sklearn Pipeline best practices","ColumnTransformer for heterogeneous data","custom Transformer classes","VotingClassifier/Regressor","StackingClassifier: meta-learner","blending: averaging, weighted"],presenter:"You",phase:1,week:9,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Show stacking architecture: level-1 models produce meta-features, level-2 meta-learner combines them. Contrast with voting/blending."},
+         {t:"0:15–0:35",title:"Build an ensemble",desc:"Build a stacking ensemble: LR + RF + XGBoost → Ridge meta-learner. Compare to any single model using cross-validated RMSE."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why does stacking outperform its best base model? What's the risk of stacking weak correlated models?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person draws the stacking architecture and labels what data flows where."}],
+   discuss:["Why should level-1 predictions be generated out-of-fold?","When does blending outperform stacking?","What's the computational cost of stacking vs a single model?"]},
+  {topic:"Neural networks: perceptrons & forward pass",concepts:["biological neuron analogy","weighted sum + bias","forward propagation","network depth vs width","universal approximation theorem","matrix form of forward pass"],presenter:"Friend",phase:2,week:10,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Explain the neuron: inputs × weights + bias → activation. Walk through a 2-layer network forward pass step by step."},
+         {t:"0:15–0:35",title:"Build from scratch",desc:"Implement a 2-layer network in pure NumPy. Train on XOR. Visualise the decision boundary. Verify universal approximation empirically."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why can a single neuron not learn XOR? What's the minimum architecture that can?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person traces a forward pass through a 3-layer network by hand on paper."}],
+   discuss:["Why did neural networks need hidden layers to learn non-linear problems?","What's the Universal Approximation Theorem and what does it NOT say?","Why does width vs depth matter differently?"]},
+  {topic:"Backpropagation",concepts:["chain rule for nested functions","computational graph","gradient flow through operations","vanishing/exploding gradients","gradient clipping","numerical gradient check"],presenter:"You",phase:2,week:10,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Draw a computational graph. Walk through chain rule step by step. Show gradient flow backwards. Explain vanishing gradient problem."},
+         {t:"0:15–0:35",title:"Implement backprop",desc:"Implement backprop manually for a 3-layer network. Verify gradients with numerical gradient check (tolerance 1e-7). Debug together."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why does the vanishing gradient problem hurt deep networks with sigmoid? How does gradient clipping prevent exploding gradients?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains the chain rule using a concrete composition: loss(sigmoid(linear(x)))."}],
+   discuss:["Why do gradients vanish in deep sigmoid networks?","What's the numerical gradient check and why is it important?","How does Karpathy's micrograd demonstrate backprop simply?"]},
+  {topic:"Activations, losses & optimisers",concepts:["ReLU, Leaky ReLU, GELU","sigmoid, tanh, softmax","MSE, binary/categorical cross-entropy","SGD with momentum, Adam, AdamW","LR schedules: cosine, warmup"],presenter:"Friend",phase:2,week:10,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Walk through each activation and why ReLU replaced sigmoid. Explain cross-entropy loss. Contrast SGD, Adam, RMSProp update rules."},
+         {t:"0:15–0:35",title:"Optimiser race",desc:"Train the same network with SGD, Adam, RMSProp. Plot all 3 loss curves. Experiment with cosine annealing vs step decay."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why does Adam usually converge faster but sometimes generalise worse than SGD? When would you use SGD in production?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person writes the update rule for Adam from memory and explains each term."}],
+   discuss:["Why does dying ReLU happen and how do Leaky ReLU and GELU fix it?","What's the difference between Adam and AdamW?","Why does learning rate warmup help large batch training?"]},
+  {topic:"Regularisation & PyTorch fundamentals",concepts:["dropout, batch norm, layer norm","weight initialisation: Xavier, Kaiming","L1/L2 weight decay","PyTorch: Tensor, autograd, nn.Module","DataLoader, training loop"],presenter:"You",phase:2,week:10,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Explain dropout (training vs inference mode) and batch normalisation. Then switch to PyTorch: tensors, autograd, nn.Module anatomy."},
+         {t:"0:15–0:35",title:"PyTorch training loop",desc:"Build a complete PyTorch training loop from scratch: DataLoader → forward → loss → backward → optimiser step. Train on MNIST digits."},
+         {t:"0:35–0:50",title:"Discussion",desc:"What does batch norm actually normalise and why does it help training? What's the difference between batch norm and layer norm?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person draws the full PyTorch training loop as a flowchart."}],
+   discuss:["Why does dropout behave differently at train vs test time?","What's the risk of bad weight initialisation for deep networks?","Why is layer norm used in transformers instead of batch norm?"]},
+  {topic:"CNNs: convolutions & architecture",concepts:["convolution: kernel, stride, padding","feature maps, receptive field","pooling: max, average, global","parameter count calculation","1×1 convolutions","depthwise separable convs"],presenter:"Friend",phase:2,week:11,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Show convolution: kernel slides over image → feature map. Explain stride, padding, receptive field. Calculate output size formula."},
+         {t:"0:15–0:35",title:"Manual convolution",desc:"Manually compute output of a 3×3 conv on a 5×5 input. Calculate parameter count for a VGG-like network. Build a simple CNN in PyTorch."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why do 1×1 convolutions reduce computation? What's the relationship between receptive field and depth?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person calculates the parameter count of a 3-layer CNN by hand."}],
+   discuss:["Why do CNNs need fewer parameters than fully connected networks for images?","What does a feature map at layer 1 vs layer 5 learn?","Why did depthwise separable convolutions make MobileNet possible?"]},
+  {topic:"Transfer learning & fine-tuning",concepts:["feature extraction vs fine-tuning","freezing layers","custom classification head","differential learning rates","few-shot learning intro"],presenter:"You",phase:2,week:11,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Explain ImageNet pretraining. Show feature extraction (freeze all but head) vs full fine-tuning. Explain differential learning rates."},
+         {t:"0:15–0:35",title:"Three-way fine-tune",desc:"Fine-tune ResNet-18 on a 5-class dataset: from scratch vs feature extract vs full fine-tune. Plot 3 learning curves side by side."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why should early layers have lower learning rates during fine-tuning? When is fine-tuning harmful (negative transfer)?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains why a model pretrained on ImageNet helps even for medical imaging."}],
+   discuss:["What's negative transfer and when does it occur?","Why does fine-tuning work better with more similar source and target domains?","What's few-shot learning and why does it matter?"]},
+  {topic:"NLP: text preprocessing & embeddings",concepts:["tokenisation, lemmatisation, NER","Bag-of-words, TF-IDF, n-grams","Word2Vec, GloVe, fastText","cosine similarity, analogies","sentence embeddings"],presenter:"Friend",phase:2,week:12,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Walk through NLP pipeline: tokenise → clean → embed. Show TF-IDF vs Word2Vec differences. Demo king-man+woman=queen analogy."},
+         {t:"0:15–0:35",title:"Embedding exploration",desc:"Load GloVe vectors. Find top-10 neighbours for 5 words. Solve 10 analogy tasks. Visualise 50 words with t-SNE."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why do static embeddings (Word2Vec) fail for polysemy (e.g., 'bank')? What do contextual embeddings solve?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains TF-IDF to the other using a document retrieval scenario."}],
+   discuss:["What does the 'naive' in Bag-of-Words mean?","Why does fastText handle out-of-vocabulary words better than Word2Vec?","What does 'cosine similarity' capture about word meaning?"]},
+  {topic:"Transformers & Hugging Face",concepts:["self-attention: Q, K, V","multi-head attention","positional encoding","encoder (BERT) vs decoder (GPT)","AutoTokenizer, AutoModel","Trainer API, fine-tuning"],presenter:"You",phase:2,week:12,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Walk through attention: query × key → score → weight × value. Show multi-head attention. Explain BERT vs GPT architectural difference."},
+         {t:"0:15–0:35",title:"Fine-tune BERT",desc:"Fine-tune DistilBERT on SST-2 with the Hugging Face Trainer API. Log to WandB. Evaluate on test set. Compare to TF-IDF + LogReg baseline."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why does BERT use a bidirectional encoder? What's the attention complexity bottleneck at long context?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person traces the flow of one token through a transformer encoder layer."}],
+   discuss:["What does 'self' mean in self-attention?","Why is O(n²) attention complexity a problem for long documents?","What's the difference between BERT and GPT architecturally and when would you use each?"]},
+  {topic:"LLMs: architecture, prompting & RAG",concepts:["tokenisation, context window, KV-cache","temperature, top-p sampling","zero-shot, few-shot, chain-of-thought","RAG: embed → retrieve → generate","FAISS, Chroma for vector search"],presenter:"Friend",phase:2,week:13,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Explain LLM inference: tokens → context window → sampling. Walk through zero-shot, few-shot, chain-of-thought prompting examples."},
+         {t:"0:15–0:35",title:"Build a mini RAG",desc:"Together: embed a 20-page PDF with sentence-transformers → store in FAISS → query with 5 questions → retrieve + generate answers with an LLM."},
+         {t:"0:35–0:50",title:"Discussion",desc:"When does chain-of-thought fail? What's retrieval grounding and why does it reduce hallucination?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains RAG to someone who has only heard of ChatGPT."}],
+   discuss:["What's a hallucination and why does RAG reduce it?","When would you use few-shot vs fine-tuning?","What's the tradeoff between chunk size in RAG?"]},
+  {topic:"Fine-tuning LLMs & agents",concepts:["full fine-tuning vs LoRA, QLoRA","PEFT: parameter-efficient fine-tuning","LangChain chains, agents, tools","ReAct agent pattern","function calling","memory: buffer, vector store"],presenter:"You",phase:2,week:13,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Explain LoRA: only tune low-rank weight deltas. Show QLoRA for 4-bit fine-tuning on consumer GPUs. Introduce LangChain agent architecture."},
+         {t:"0:15–0:35",title:"Agent demo",desc:"Build a ReAct agent with 3 tools: web search, Python REPL, calculator. Test on 5 complex questions. Trace and log all tool calls."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why does LoRA reduce memory by so much? When would you fine-tune vs prompt engineer vs use RAG?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person draws the decision tree: given a new LLM task, do you prompt, RAG, or fine-tune?"}],
+   discuss:["What's the intuition behind LoRA's low-rank approximation?","What's prompt injection and how would you defend against it?","When does an agent beat a single LLM call?"]},
+  {topic:"Reinforcement learning fundamentals",concepts:["agent, environment, state, action, reward","MDP: Markov Decision Process","policy: deterministic vs stochastic","value V(s), Q-function Q(s,a)","Bellman equations","exploration vs exploitation"],presenter:"Friend",phase:2,week:14,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Walk through RL framework: agent acts → environment responds → reward. Define MDP. Explain Bellman equation for value iteration."},
+         {t:"0:15–0:35",title:"Solve a grid world",desc:"Implement a grid-world MDP from scratch. Solve with value iteration. Visualise value function and optimal policy as heatmaps."},
+         {t:"0:35–0:50",title:"Discussion",desc:"What's the exploration-exploitation dilemma? Why is a Markov assumption useful even when the world isn't truly Markov?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains the Bellman equation in plain English without using any symbols."}],
+   discuss:["What's the difference between model-based and model-free RL?","Why is the reward function the hardest part to design?","What's reward hacking?"]},
+  {topic:"Q-learning, DQN & policy gradients",concepts:["Q-table: tabular Q-learning","epsilon-greedy exploration","experience replay buffer","target network","REINFORCE algorithm","PPO: clipped objective, entropy bonus"],presenter:"You",phase:2,week:14,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Walk through Q-learning update rule. Explain experience replay and target network in DQN. Introduce REINFORCE and PPO clipped objective."},
+         {t:"0:15–0:35",title:"CartPole training",desc:"Implement DQN with experience replay for CartPole. Train to 200 reward. Plot episode return. Try double DQN and compare."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why does DQN need a target network? What's the difference between on-policy (PPO) and off-policy (DQN) learning?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains experience replay using a human memory analogy."}],
+   discuss:["Why is tabular Q-learning impossible for most real problems?","What's the deadly triad problem in DQN?","Why is PPO's clipped objective safer than vanilla policy gradient?"]},
+  {topic:"MLOps: MLflow & DVC",concepts:["MLflow: runs, params, metrics, registry","autolog for sklearn, XGBoost","DVC pipelines: stages, dependencies","remote storage, dvc repro","data & model versioning","DVC + Git workflow"],presenter:"Friend",phase:3,week:15,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Walk through MLflow: experiment tracking, model registry. Show DVC pipeline stages. Explain how DVC + Git gives reproducibility."},
+         {t:"0:15–0:35",title:"Convert a notebook",desc:"Together: convert a notebook-based experiment to MLflow + DVC pipeline. Log all params, metrics, model artifact. Compare 3 runs in MLflow UI."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why is a Jupyter notebook insufficient for production ML? What does 'reproducibility' mean in ML and why is it hard?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person lists 3 things that could go wrong in an ML project with no experiment tracking."}],
+   discuss:["What's the difference between data versioning and model versioning?","Why is MLflow's model registry useful for teams?","How does DVC handle large binary files that Git can't?"]},
+  {topic:"Docker & CI/CD for ML",concepts:["Dockerfile: FROM, RUN, COPY, CMD","building, tagging images","docker-compose multi-service","GitHub Actions: workflow YAML","automated testing for ML code","data validation: Great Expectations"],presenter:"You",phase:3,week:15,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Walk through a Dockerfile for a FastAPI ML service. Explain build, run, volumes. Show a GitHub Actions workflow for ML."},
+         {t:"0:15–0:35",title:"Build and test",desc:"Containerise a scikit-learn model with FastAPI. Build the image, run, hit /predict. Add a GitHub Actions workflow that tests and builds automatically."},
+         {t:"0:35–0:50",title:"Discussion",desc:"What's the difference between a container and a virtual machine? Why does CI/CD matter for ML specifically?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person writes one model quality gate they'd add to their CI pipeline."}],
+   discuss:["Why does Docker solve the 'works on my machine' problem?","What's a model quality gate and why should it be automated?","What's the risk of deploying a model without data validation?"]},
+  {topic:"FastAPI model serving",concepts:["routes, path params, Pydantic models","async endpoints","/health and /predict endpoints","loading models at startup","OpenAPI/Swagger docs auto-gen","gunicorn + uvicorn workers"],presenter:"Friend",phase:3,week:16,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Build a FastAPI skeleton: /health and /predict. Show Pydantic input validation. Explain async endpoints. Demo auto-generated Swagger docs."},
+         {t:"0:15–0:35",title:"Serve your model",desc:"Wrap an XGBoost model in FastAPI. Load model at startup. Handle edge cases (invalid input, model failure). Test with curl and httpie."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why use Pydantic for input validation? What happens if the model receives unexpected feature values in production?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person writes 3 things that can go wrong at a /predict endpoint and how to handle each."}],
+   discuss:["What's the difference between sync and async endpoints in FastAPI?","Why does input validation matter so much in production?","How would you version a model API?"]},
+  {topic:"Cloud deployment & model monitoring",concepts:["GCP Cloud Run / AWS Lambda","SageMaker endpoints, auto-scaling","Streamlit & Gradio for demos","model monitoring: data drift","Evidently AI reports","retraining triggers"],presenter:"You",phase:3,week:16,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Walk through deploying to Cloud Run: build → push → deploy → test public URL. Show Evidently for data drift monitoring."},
+         {t:"0:15–0:35",title:"Deploy & monitor",desc:"Deploy a containerised FastAPI model to Cloud Run. Simulate data drift. Run an Evidently drift report. Discuss when to trigger retraining."},
+         {t:"0:35–0:50",title:"Discussion",desc:"What's the difference between covariate shift and concept drift? Why is monitoring harder than training?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person designs a simple monitoring dashboard: what 3 metrics would you track daily?"}],
+   discuss:["What's covariate shift and how do you detect it statistically?","Why is production ML harder than research ML?","What's the difference between online and batch prediction serving?"]},
+  {topic:"PySpark & big data",concepts:["RDDs vs DataFrames","SparkSession, lazy transformations","SparkSQL: reading parquet","partitioning, shuffling, broadcast joins","spark.ml for distributed ML"],presenter:"Friend",phase:3,week:17,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Explain Spark's lazy evaluation: transformations build a DAG, actions trigger execution. Show PySpark DataFrame API vs pandas."},
+         {t:"0:15–0:35",title:"Spark vs pandas",desc:"Load a 500MB dataset in PySpark. Run 5 aggregations. Compare syntax and time to pandas. Optimise with broadcast join and caching."},
+         {t:"0:35–0:50",title:"Discussion",desc:"Why is Spark's lazy evaluation an advantage? What's a shuffle and why is it expensive?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person explains the DAG execution model using an assembly line analogy."}],
+   discuss:["When does PySpark perform worse than pandas?","What's the difference between a narrow and wide transformation?","Why should you avoid collect() on large Spark DataFrames?"]},
+  {topic:"Responsible AI, explainability & portfolio",concepts:["SHAP: global & local explanations","LIME model-agnostic","PDP, ICE plots","fairness: demographic parity","bias auditing: Fairlearn","GitHub portfolio, model cards"],presenter:"You",phase:3,week:17,
+   hour:[{t:"0:00–0:15",title:"You present",desc:"Walk through SHAP summary plot and waterfall. Show a Fairlearn bias audit. Explain model cards and why they matter."},
+         {t:"0:15–0:35",title:"Audit a model",desc:"For a loan approval model: compute SHAP summary, waterfall for 5 predictions, run fairness audit across demographic groups. Write 3 findings."},
+         {t:"0:35–0:50",title:"Discussion",desc:"What's the difference between fairness through unawareness and equalised odds? Can a model be fair by one metric but unfair by another?"},
+         {t:"0:50–1:00",title:"Wrap-up",desc:"Each person audits one of their own past projects for any potential bias or explainability gap."}],
+   discuss:["What's the difference between individual fairness and group fairness?","Why can SHAP values be misleading with correlated features?","What should a model card contain at minimum?"]},
+  {topic:"Interview prep & capstone planning",concepts:["portfolio: README, structure, metrics","resume: quantify every bullet","SQL & coding interview practice","ML system design framework","case study: root cause + metrics","mock interview practice"],presenter:"Friend",phase:3,week:18,
+   hour:[{t:"0:00–0:15",title:"Friend presents",desc:"Walk through a mock ML system design question. Use the framework: requirements → data → modelling → evaluation → serving → monitoring."},
+         {t:"0:15–0:35",title:"Practice round",desc:"Each person does a 15-minute mock interview on one topic: one does SQL window functions, one does ML system design (recommendation system)."},
+         {t:"0:35–0:50",title:"Capstone planning",desc:"Together plan your capstone project: define the problem, data source, modelling approach, deployment target, and success metric."},
+         {t:"0:50–1:00",title:"Wrap-up & celebrate",desc:"Reflect on the full journey. Each person names 3 topics they want to go deeper on next. Set goals for the next 30 days."}],
+   discuss:["What's the most important thing to show in a data science portfolio?","How do you explain a complex model to a non-technical stakeholder in 2 minutes?","What would you do differently if you started this curriculum again?"]}
+];
+
+const START = new Date(2026, 2, 27);
+let viewYear = 2026, viewMonth = 2;
+let selected = null;
+let done = new Set();
+
+function sessionForDate(d) {
+  const diff = Math.floor((d - START) / 86400000);
+  if (diff < 0 || diff >= sessions.length) return null;
+  return { session: sessions[diff], dayNum: diff };
+}
+
+function formatDate(d) {
+  return MONTHS[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+}
+
+function renderStats() {
+  const d = done.size;
+  document.getElementById('s-done').textContent = d;
+  document.getElementById('s-left').textContent = sessions.length - d;
+  document.getElementById('s-hours').textContent = d + 'h';
+  document.getElementById('s-pct').textContent = Math.round(d / sessions.length * 100) + '%';
+}
+
+function renderCalendar() {
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+  DAYS.forEach(d => {
+    const h = document.createElement('div');
+    h.className = 'dow-hdr';
+    h.textContent = d;
+    grid.appendChild(h);
+  });
+
+  const first = new Date(viewYear, viewMonth, 1);
+  const startDow = first.getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const today = new Date(2026, 2, 25);
+
+  for (let i = 0; i < startDow; i++) {
+    const c = document.createElement('div');
+    c.className = 'cal-cell empty';
+    grid.appendChild(c);
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const d = new Date(viewYear, viewMonth, day);
+    const diff = Math.floor((d - START) / 86400000);
+    const info = sessionForDate(d);
+    const cell = document.createElement('div');
+    const isToday = d.toDateString() === today.toDateString();
+    const isSel = selected && d.toDateString() === selected.toDateString();
+    const isDone = done.has(diff);
+    cell.className = 'cal-cell' + (isToday ? ' today' : '') + (isSel ? ' selected' : '') + (isDone ? ' done' : '');
+
+    const dateRow = document.createElement('div');
+    dateRow.className = 'cell-date';
+    const numCircle = document.createElement('div');
+    numCircle.className = 'cell-day-num';
+    if (isToday) { numCircle.style.background = '#378ADD'; numCircle.style.color = '#fff'; }
+    numCircle.textContent = day;
+    dateRow.appendChild(numCircle);
+    cell.appendChild(dateRow);
+
+    if (info) {
+      const s = info.session;
+      const dot = document.createElement('div');
+      dot.className = 'cell-phase-dot';
+      dot.style.background = PHASE_COLORS[s.phase];
+      dot.style.marginBottom = '2px';
+      cell.appendChild(dot);
+      const topic = document.createElement('div');
+      topic.className = 'cell-topic';
+      topic.textContent = s.topic.length > 32 ? s.topic.slice(0, 30) + '…' : s.topic;
+      cell.appendChild(topic);
+      const pres = document.createElement('div');
+      pres.className = 'cell-presenter';
+      pres.textContent = s.presenter + ' presents · W' + s.week;
+      cell.appendChild(pres);
+      cell.onclick = () => { selected = d; renderCalendar(); renderDetail(d); };
+    }
+    grid.appendChild(cell);
+  }
+
+  document.getElementById('month-label').textContent = MONTHS[viewMonth] + ' ' + viewYear;
+}
+
+function renderDetail(d) {
+  const panel = document.getElementById('detail-panel');
+  const info = sessionForDate(d);
+  if (!info) { panel.style.display = 'none'; return; }
+  const s = info.session;
+  const diff = info.dayNum;
+  const isDone = done.has(diff);
+  const phaseNames = ['Phase 1 — Foundations', 'Phase 2 — Core ML', 'Phase 3 — Deep Learning', 'Phase 4 — Production'];
+
+  const hourHtml = s.hour.map(h => `
+    <div class="hour-block" style="background:${PHASE_BG[s.phase]};border-color:${PHASE_COLORS[s.phase]}33">
+      <div class="hour-time" style="color:${PHASE_COLORS[s.phase]}">${h.t}</div>
+      <div class="hour-title">${h.title}</div>
+      <div class="hour-desc">${h.desc}</div>
+    </div>`).join('');
+
+  const pillsHtml = s.concepts.map(c => `<span class="concept-pill">${c}</span>`).join('');
+  const discussHtml = s.discuss.map(q => `<div class="discuss-item"><span class="discuss-dot"></span><span>${q}</span></div>`).join('');
+
+  panel.style.display = 'block';
+  panel.innerHTML = `
+    <div class="detail-header">
+      <div class="detail-date-box">
+        <div class="detail-month">${MONTHS[d.getMonth()].slice(0,3).toUpperCase()}</div>
+        <div class="detail-day">${d.getDate()}</div>
+        <div class="detail-dow">${DAYS[d.getDay()]}</div>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div class="detail-title">${s.topic}</div>
+        <div class="detail-meta">${phaseNames[s.phase]} · Week ${s.week} · Day ${diff+1} of ${sessions.length}</div>
+      </div>
+      <button class="check-btn" onclick="toggleDone(${diff})" style="align-self:flex-start">${isDone ? '✓ Done' : 'Mark done'}</button>
+    </div>
+    <span class="detail-badge" style="background:${PHASE_BG[s.phase]};color:${PHASE_TEXT[s.phase]};border:0.5px solid ${PHASE_COLORS[s.phase]}44">${s.presenter} presents today</span>
+    <div style="font-size:11px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">1-hour session breakdown</div>
+    <div class="hour-grid">${hourHtml}</div>
+    <div style="font-size:11px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Concepts covered</div>
+    <div class="concepts-row" style="margin-bottom:12px">${pillsHtml}</div>
+    <div class="discuss-box">
+      <div class="discuss-label">Discussion questions for today</div>
+      <div class="discuss-list">${discussHtml}</div>
+    </div>`;
+}
+
+function toggleDone(diff) {
+  if (done.has(diff)) done.delete(diff); else done.add(diff);
+  renderStats();
+  renderCalendar();
+  if (selected) renderDetail(selected);
+}
+
+document.getElementById('prev-btn').onclick = () => {
+  viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+  renderCalendar();
+};
+document.getElementById('next-btn').onclick = () => {
+  viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+  renderCalendar();
+};
+
+renderStats();
+renderCalendar();
+</script>
